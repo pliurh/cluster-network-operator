@@ -41,7 +41,7 @@ func ValidateClusterConfig(clusterConfig configv1.NetworkSpec) error {
 		}
 		size, _ := cidr.Mask.Size()
 		// The comparison is inverted; smaller number is larger block
-		if cnet.HostPrefix < uint32(size) {
+		if cnet.HostPrefix <= uint32(size) {
 			return errors.Errorf("hostPrefix %d is larger than its cidr %s",
 				cnet.HostPrefix, cnet.CIDR)
 		}
@@ -59,14 +59,16 @@ func ValidateClusterConfig(clusterConfig configv1.NetworkSpec) error {
 	}
 
 	if clusterConfig.NetworkType == "" {
+		//PHIL OpenShiftSDN or OVNKubernetes
 		return errors.Errorf("spec.networkType is required")
 	}
 
 	return nil
 }
 
-// MergeClusterConfig merges the cluster configuration in to the real
+// MergeClusterConfig merges the cluster configuration into the real
 // CRD configuration.
+//PHIL need to include the ovn version...
 func MergeClusterConfig(operConf *netopv1.NetworkConfigSpec, clusterConf configv1.NetworkSpec) {
 	operConf.ServiceNetwork = clusterConf.ServiceNetwork[0]
 
@@ -82,6 +84,7 @@ func MergeClusterConfig(operConf *netopv1.NetworkConfigSpec, clusterConf configv
 		})
 	}
 
+	//PHIL - OpenShiftSDN (default), OVNKubenetes
 	operConf.DefaultNetwork.Type = netopv1.NetworkType(clusterConf.NetworkType)
 }
 

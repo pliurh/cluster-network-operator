@@ -61,8 +61,10 @@ spec:
   serviceNetwork: 172.30.0.0/16
 ```
 
+Note that OVNKubernetes uses an extended cidr format "IP/mask/subnet" where subnet is hostPrefix from above.
+
 ## Configuring IP address pools
-Users must supply at least two address pools - one for pods, and one for services. These are the ClusterNetworks and ServiceNetwork parameter. Some network plugins, such as OpenShiftSDN, support multiple ClusterNetworks. All address blocks must be non-overlapping. You should select address pools large enough to fit your anticipated workload.
+Users must supply at least two address pools - one for pods, and one for services. These are the ClusterNetworks and ServiceNetwork parameter. Some network plugins, such as OpenShiftSDN, and OVNKubernetes, support multiple ClusterNetworks. All address blocks must be non-overlapping. You should select address pools large enough to fit your anticipated workload. Each block must be able to hold 1 or more hostSubnetLength allocations.
 
 For future expansion, multiple `serviceNetwork` entries are allowed by the configuration but not actually supported by any network plugins. Supplying multiple addresses is invalid.
 
@@ -78,7 +80,7 @@ IP address pools are always read from the Cluster configuration and propagated "
 Currently, changing the address pools once set is not supported. In the future, some network providers may support expanding the address pools.
 
 
-Example
+OpenShiftSDN Example
 ```yaml
 spec:
   serviceNetwork: "172.30.0.0/16"
@@ -89,12 +91,21 @@ spec:
       hostSubnetLength: 9
 ```
 
+OVNKubernetes Example
+```yaml
+spec:
+  serviceNetwork: "172.30.0.0/16"
+  clusterNetworks:
+    - cidr: "10.128.0.0/14/23"
+    - cidr: "192.168.0.0/18/23"
+```
+
 ## Configuring the default network provider
 Users must select a default network provider. This cannot be changed. Different network providers have additional provider-specific settings.
 
 The network type is always read from the Cluster configuration.
 
-Currently, the only supported value for network Type is `OpenShiftSDN`.
+Currently, the only supported values for network Type are `OpenShiftSDN`, and `OVNKubernetes`.
 
 ### Configuring OpenShiftSDN
 OpenShiftSDN supports the following configuration options, all of which are optional:
@@ -115,6 +126,23 @@ spec:
       vxlanPort: 4789
       mtu: 1450
       useExternalOpenvswitch: false
+```
+
+### Configuring OVNKubernetes
+OVNKubernetes supports the following configuration options, all of which are optional:
+* `genevePort`: The port to use for the geneve overlay. The default is 6081
+* `MTU`: The MTU to use for the geneve overlay. The default is the MTU of the node that the cluster-network-operator is first run on, minus 100 bytes for overhead. If the nodes in your cluster don't all have the same MTU then you will need to set this explicitly.
+
+These configuration flags are only in the Operator configuration object.
+
+Example:
+```yaml
+spec:
+  defaultNetwork:
+    type: OVNKubernetes
+    ovnKubernetesConfig:
+      genevePort: 6081
+      mtu: 1400
 ```
 
 ## Configuring kube-proxy
