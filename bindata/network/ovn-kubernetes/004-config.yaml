@@ -1,0 +1,10 @@
+---
+# The network cidr and service cidr are set in the ovn-config configmap
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: ovn-config
+  namespace: ovn-kubernetes
+data:
+  net_cidr:   10.128.0.0/14/23 #   "{{ net_cidr | default('10.128.0.0/14/23') }}"
+  svc_cidr:   172.30.0.0/16    #   "{{ svc_cidr | default('172.30.0.0/16') }}"

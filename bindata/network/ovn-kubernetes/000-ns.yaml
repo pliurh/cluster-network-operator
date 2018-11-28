@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ovn-kubernetes
+  labels:
+    name: ovn-kubernetes
+    openshift.io/run-level: "0"
+  annotations:
+    openshift.io/node-selector: "beta.kubernetes.io/os=linux"
+    openshift.io/description: "OVN Kubernetes components"
