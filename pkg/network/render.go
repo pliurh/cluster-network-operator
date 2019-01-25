@@ -29,6 +29,17 @@ func Render(conf *netv1.NetworkConfigSpec, manifestDir string) ([]*uns.Unstructu
 	}
 	objs = append(objs, o...)
 
+	if conf.SidecarNetwork != nil {
+		// render sidecar network
+		o, err = RenderSidecarNetwork(conf, manifestDir)
+		if err != nil {
+			return nil, err
+		}
+		if o != nil {
+			objs = append(objs, o...)
+		}
+	}
+
 	// render kube-proxy
 	// TODO: kube-proxy
 
@@ -158,10 +169,26 @@ func RenderDefaultNetwork(conf *netv1.NetworkConfigSpec, manifestDir string) ([]
 	case netv1.NetworkTypeOpenShiftSDN, netv1.NetworkTypeDeprecatedOpenshiftSDN:
 		return renderOpenShiftSDN(conf, manifestDir)
 	case netv1.NetworkTypeOVNKubernetes:
-		return renderOVNKubernetes(conf, manifestDir)
+		return renderOVNKubernetes(conf, manifestDir, false)
 	}
 
 	return nil, errors.Errorf("unknown or unsupported NetworkType: %s", dn.Type)
+}
+
+// RenderSidecarNetwork generates the manifests corresponding to the requested
+// migration target default network
+func RenderSidecarNetwork(conf *netv1.NetworkConfigSpec, manifestDir string) ([]*uns.Unstructured, error) {
+	sn := conf.SidecarNetwork
+	if errs := ValidateDefaultNetwork(conf); len(errs) > 0 {
+		return nil, errors.Errorf("invalid Default Network configuration: %v", errs)
+	}
+
+	switch sn.Type {
+	case netv1.NetworkTypeOVNKubernetes:
+		return renderOVNKubernetes(conf, manifestDir, true)
+	}
+
+	return nil, errors.Errorf("unknown or unsupported NetworkType: %s", sn.Type)
 }
 
 // FillDefaultNetworkDefaults

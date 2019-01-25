@@ -52,6 +52,8 @@ type NetworkConfigSpec struct {
 	// The "default" network that all pods will receive
 	DefaultNetwork DefaultNetworkDefinition `json:"defaultNetwork"`
 
+	SidecarNetwork *DefaultNetworkDefinition `json:"sidecarNetwork,omitempty"`
+
 	// Additional networks to make available to pods when multiple networks
 	// are enabled.
 	AdditionalNetworks []AdditionalNetworkDefinition `json:"additionalNetworks"`
@@ -107,6 +109,7 @@ type DefaultNetworkDefinition struct {
 	// See the plugin-specific documentation for which values are required.
 	// +optional
 	OtherConfig map[string]string `json:"otherConfig,omitEmpty"`
+	ClusterNetworks []ClusterNetwork `json:"ClusterNetworks,omitEmpty"`
 }
 
 // AdditionalNetworkDefinition is extra networks that are available but not

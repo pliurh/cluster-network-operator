@@ -60,6 +60,11 @@ func (in *DefaultNetworkDefinition) DeepCopyInto(out *DefaultNetworkDefinition) 
 			(*out)[key] = val
 		}
 	}
+	if in.ClusterNetworks != nil {
+		in, out := &in.ClusterNetworks, &out.ClusterNetworks
+		*out = make([]ClusterNetwork, len(*in))
+		copy(*out, *in)
+	}
 	return
 }
 
@@ -143,6 +148,11 @@ func (in *NetworkConfigSpec) DeepCopyInto(out *NetworkConfigSpec) {
 		copy(*out, *in)
 	}
 	in.DefaultNetwork.DeepCopyInto(&out.DefaultNetwork)
+	if in.SidecarNetwork != nil {
+		in, out := &in.SidecarNetwork, &out.SidecarNetwork
+		*out = new(DefaultNetworkDefinition)
+		(*in).DeepCopyInto(*out)
+	}
 	if in.AdditionalNetworks != nil {
 		in, out := &in.AdditionalNetworks, &out.AdditionalNetworks
 		*out = make([]AdditionalNetworkDefinition, len(*in))
