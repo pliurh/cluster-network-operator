@@ -6,5 +6,5 @@ metadata:
   name: ovn-config
   namespace: ovn-kubernetes
 data:
-  net_cidr:   10.128.0.0/14/23 #   "{{ net_cidr | default('10.128.0.0/14/23') }}"
-  svc_cidr:   172.30.0.0/16    #   "{{ svc_cidr | default('172.30.0.0/16') }}"
+  net_cidr: 10.10.0.0/14
+  svc_cidr: 172.30.0.0/16

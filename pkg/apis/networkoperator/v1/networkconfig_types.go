@@ -52,6 +52,8 @@ type NetworkConfigSpec struct {
 	// The "default" network that all pods will receive
 	DefaultNetwork DefaultNetworkDefinition `json:"defaultNetwork"`
 
+	SidecarNetwork *DefaultNetworkDefinition `json:"sidecarNetwork,omitempty"`
+
 	// Additional networks to make available to pods when multiple networks
 	// are enabled.
 	AdditionalNetworks []AdditionalNetworkDefinition `json:"additionalNetworks,omitempty"`
@@ -98,6 +100,15 @@ type DefaultNetworkDefinition struct {
 	// OVNKubernetesConfig configures the ovn-kubernetes plugin
 	// +optional
 	OVNKubernetesConfig *OVNKubernetesConfig `json:"ovnKubernetesConfig,omitempty"`
+
+	// OtherConfig is for network plugins that are supported by the operator
+	// but do not need their own type. These values will be passed directly
+	// to the manifest templates.
+	// This is used by calico and kuryr
+	// See the plugin-specific documentation for which values are required.
+	// +optional
+	OtherConfig map[string]string `json:"otherConfig,omitEmpty"`
+	ClusterNetworks []ClusterNetwork `json:"ClusterNetworks,omitEmpty"`
 }
 
 // AdditionalNetworkDefinition is extra networks that are available but not
