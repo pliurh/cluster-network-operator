@@ -8,3 +8,6 @@ metadata:
 data:
   net_cidr: 10.10.0.0/14
   svc_cidr: 172.30.0.0/16
+  OvnNorth: tcp://ovnkube-master:6641
+  OvnSouth: tcp://ovnkube-master:6642
+  k8s_apiserver: https://kubernetes.default:8443

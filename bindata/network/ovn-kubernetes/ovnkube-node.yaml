@@ -155,7 +155,7 @@ spec:
 
         ports:
         - name: healthz
-          containerPort: 10258
+          containerPort: 20258
         # TODO: Temporarily disabled until we determine how to wait for clean default
         # config
         # livenessProbe:
@@ -218,6 +218,8 @@ spec:
             cpu: 100m
             memory: 300Mi
         env:
+        - name: K8S_APISERVER
+          value: "{{.KUBERNETES_SERVICE_HOST}}:{{.KUBERNETES_SERVICE_PORT}}"
         - name: OVN_DAEMONSET_VERSION
           value: "3"
         - name: OVNKUBE_LOGLEVEL
@@ -239,7 +241,7 @@ spec:
 
         ports:
         - name: healthz
-          containerPort: 10259
+          containerPort: 20259
         # TODO: Temporarily disabled until we determine how to wait for clean default
         # config
         # livenessProbe:

@@ -122,7 +122,7 @@ spec:
               fieldPath: spec.nodeName
         ports:
         - name: healthz
-          containerPort: 10257
+          containerPort: 20257
         # TODO: Temporarily disabled until we determine how to wait for clean default
         # config
         # livenessProbe:
@@ -208,9 +208,24 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: spec.nodeName
+        - name: K8S_APISERVER
+          valueFrom:
+            configMapKeyRef:
+              name: ovn-config
+              key: k8s_apiserver
+        - name: OVN_NORTH
+          valueFrom:
+            configMapKeyRef:
+              name: ovn-config
+              key: OvnNorth
+        - name: OVN_SOUTH
+          valueFrom:
+            configMapKeyRef:
+              name: ovn-config
+              key: OvnSouth
         ports:
         - name: healthz
-          containerPort: 10256
+          containerPort: 20256
         # TODO: Temporarily disabled until we determine how to wait for clean default
         # config
         # livenessProbe:
@@ -298,7 +313,7 @@ spec:
               fieldPath: spec.nodeName
         ports:
         - name: healthz
-          containerPort: 10255
+          containerPort: 20255
         # TODO: Temporarily disabled until we determine how to wait for clean default
         # config
         # livenessProbe:
@@ -367,6 +382,21 @@ spec:
         env:
         - name: OVN_DAEMONSET_VERSION
           value: "3"
+        - name: K8S_APISERVER
+          valueFrom:
+            configMapKeyRef:
+              name: ovn-config
+              key: k8s_apiserver
+        - name: OVN_NORTH
+          valueFrom:
+            configMapKeyRef:
+              name: ovn-config
+              key: OvnNorth
+        - name: OVN_SOUTH
+          valueFrom:
+            configMapKeyRef:
+              name: ovn-config
+              key: OvnSouth
         - name: OVN_MASTER
           value: "true"
         - name: OVNKUBE_LOGLEVEL
@@ -387,7 +417,7 @@ spec:
               fieldPath: spec.nodeName
         ports:
         - name: healthz
-          containerPort: 10254
+          containerPort: 20254
         # TODO: Temporarily disabled until we determine how to wait for clean default
         # config
         # livenessProbe:
@@ -400,7 +430,7 @@ spec:
       # end of container
 
       nodeSelector:
-        node-role.kubernetes.io/master: "true"
+        node-role.kubernetes.io/master: ""
         beta.kubernetes.io/os: "linux"
       volumes:
       # In bootstrap mode, the host config contains information not easily available
@@ -448,27 +478,27 @@ spec:
       tolerations:
       - operator: "Exists"
 
----
+#---
 # service to expose the ovn-master pod
 # at present ovn-master is limited to a single instance so
 # when the cluster has multiple masters we can get to the
 # ovn-master via this service.
-apiVersion: v1
-kind: Service
-metadata:
-  name: ovnkube-master
-spec:
-  ports:
-  - name: north
-    port: 6641
-    protocol: TCP
-    targetPort: 6641
-  - name: south
-    port: 6642
-    protocol: TCP
-    targetPort: 6642
-  sessionAffinity: None
-  clusterIP: None
-  type: ClusterIP
-  selector:
-    name: ovnkube-master
+# apiVersion: v1
+# kind: Service
+# metadata:
+#   name: ovnkube-master
+# spec:
+#   ports:
+#   - name: north
+#     port: 6641
+#     protocol: TCP
+#     targetPort: 6641
+#   - name: south
+#     port: 6642
+#     protocol: TCP
+#     targetPort: 6642
+#   sessionAffinity: None
+#   clusterIP: None
+#   type: ClusterIP
+#   selector:
+#     name: ovnkube-master
