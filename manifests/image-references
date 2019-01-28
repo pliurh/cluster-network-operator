@@ -29,4 +29,4 @@ spec:
   - name: ovnkube
     from:
       kind: DockerImage
-      name: docker.io/openshift/origin-ovn-kubernetes:v4.0.0
+      name: docker.io/ovnkube/ovn-daemonset:latest
