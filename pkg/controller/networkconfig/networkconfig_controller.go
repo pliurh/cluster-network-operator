@@ -103,7 +103,7 @@ func (r *ReconcileNetworkConfig) Reconcile(request reconcile.Request) (reconcile
 	log.Printf("Reconciling NetworkConfig.networkoperator.openshift.io %s\n", request.Name)
 
 	// We won't create more than one network
-	if request.Name != names.OPERATOR_CONFIG {
+	if request.Name != names.OPERATOR_CONFIG && request.Name != names.SHADOW_CONFIG{
 		log.Printf("Ignoring NetworkConfig without default name")
 		return reconcile.Result{}, nil
 	}
@@ -126,14 +126,15 @@ func (r *ReconcileNetworkConfig) Reconcile(request reconcile.Request) (reconcile
 		return reconcile.Result{}, err
 	}
 
-	// Merge in the cluster configuration, in case the administrator has updated some "downstream" fields
-	// This will also commit the change back to the apiserver.
-	if err := r.MergeClusterConfig(context.TODO(), operConfig); err != nil {
-		log.Printf("Failed to merge the cluster configuration: %v", err)
-		r.status.SetConfigFailing("MergeClusterConfig", err)
-		return reconcile.Result{}, err
+	if request.Name == names.OPERATOR_CONFIG {
+		// Merge in the cluster configuration, in case the administrator has updated some "downstream" fields
+		// This will also commit the change back to the apiserver.
+		if err := r.MergeClusterConfig(context.TODO(), operConfig); err != nil {
+			log.Printf("Failed to merge the cluster configuration: %v", err)
+			r.status.SetConfigFailing("MergeClusterConfig", err)
+			return reconcile.Result{}, err
+		}
 	}
-
 	// Validate the configuration
 	if err := network.Validate(&operConfig.Spec); err != nil {
 		log.Printf("Failed to validate NetworkConfig.Spec: %v", err)

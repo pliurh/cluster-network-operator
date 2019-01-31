@@ -31,13 +31,8 @@ const NodeNameMagicString = "%%NODENAME%%"
 // - the ovnkube-node daemonset
 // - the ovnkube-master deployment
 // and some other small things.
-func renderOVNKubernetes(conf *netv1.NetworkConfigSpec, manifestDir string, sidecar bool) ([]*uns.Unstructured, error) {
-	var c *netv1.OVNKubernetesConfig
-	if sidecar {
-		c = conf.SidecarNetwork.OVNKubernetesConfig
-	} else {
-		c = conf.DefaultNetwork.OVNKubernetesConfig
-	}
+func renderOVNKubernetes(conf *netv1.NetworkConfigSpec, manifestDir string) ([]*uns.Unstructured, error) {
+	c := conf.DefaultNetwork.OVNKubernetesConfig
 
 	objs := []*uns.Unstructured{}
 
@@ -50,14 +45,14 @@ func renderOVNKubernetes(conf *netv1.NetworkConfigSpec, manifestDir string, side
 	data.Data["MTU"] = c.MTU
 	data.Data["KUBERNETES_SERVICE_HOST"] = os.Getenv("KUBERNETES_SERVICE_HOST")
 	data.Data["KUBERNETES_SERVICE_PORT"] = os.Getenv("KUBERNETES_SERVICE_PORT")
-
-	operCfg, err := controllerOVNConfig(conf, sidecar)
+	
+	operCfg, err := controllerOVNConfig(conf)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to build controller config")
 	}
 	data.Data["NetworkControllerConfig"] = operCfg
 
-	nodeCfg, err := nodeOVNConfig(conf, sidecar)
+	nodeCfg, err := nodeOVNConfig(conf)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to build node config")
 	}
@@ -77,7 +72,6 @@ func renderOVNKubernetes(conf *netv1.NetworkConfigSpec, manifestDir string, side
 func validateOVNKubernetes(conf *netv1.NetworkConfigSpec) []error {
 	out := []error{}
 	oc := conf.DefaultNetwork.OVNKubernetesConfig
-	
 	if oc == nil {
 		out = append(out, errors.Errorf("OVNKubernetesConfig cannot be nil"))
 		return out
@@ -145,23 +139,14 @@ func networkPluginName() string {
 //PHIL -- what is this?
 // controllerOVNConfig builds the contents of controller-config.yaml
 // for the controller
-func controllerOVNConfig(conf *netv1.NetworkConfigSpec, sidecar bool) (string, error) {
-	var c *netv1.OVNKubernetesConfig
+func controllerOVNConfig(conf *netv1.NetworkConfigSpec) (string, error) {
+	c := conf.DefaultNetwork.OVNKubernetesConfig
+
+	// generate master network configuration
+	//PHIL need netv1.NetworkConfigSpec version
 	ippools := []cpv1.ClusterNetworkEntry{}
-	if sidecar {
-		c = conf.SidecarNetwork.OVNKubernetesConfig
-		// generate master network configuration
-		//PHIL need netv1.NetworkConfigSpec version
-		for _, net := range conf.SidecarNetwork.ClusterNetworks {
-			ippools = append(ippools, cpv1.ClusterNetworkEntry{CIDR: net.CIDR, HostSubnetLength: net.HostSubnetLength})
-		}
-	} else {
-		c = conf.DefaultNetwork.OVNKubernetesConfig
-		// generate master network configuration
-		//PHIL need netv1.NetworkConfigSpec version
-		for _, net := range conf.ClusterNetworks {
-			ippools = append(ippools, cpv1.ClusterNetworkEntry{CIDR: net.CIDR, HostSubnetLength: net.HostSubnetLength})
-		}
+	for _, net := range conf.ClusterNetworks {
+		ippools = append(ippools, cpv1.ClusterNetworkEntry{CIDR: net.CIDR, HostSubnetLength: net.HostSubnetLength})
 	}
 
 	//PHIL we need a ovn version here
@@ -208,13 +193,8 @@ func controllerOVNConfig(conf *netv1.NetworkConfigSpec, sidecar bool) (string, e
 
 // nodeOVNConfig builds the (yaml text of) the NodeConfig object
 // consumed by the sdn node process
-func nodeOVNConfig(conf *netv1.NetworkConfigSpec, sidecar bool) (string, error) {
-	var c *netv1.OVNKubernetesConfig
-	if sidecar {
-		c = conf.SidecarNetwork.OVNKubernetesConfig
-	} else {
-		c = conf.DefaultNetwork.OVNKubernetesConfig
-	}
+func nodeOVNConfig(conf *netv1.NetworkConfigSpec) (string, error) {
+	c := conf.DefaultNetwork.OVNKubernetesConfig
 
 	result := legacyconfigv1.NodeConfig{
 		TypeMeta: metav1.TypeMeta{

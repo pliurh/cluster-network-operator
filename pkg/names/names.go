@@ -6,6 +6,7 @@ package names
 // operator configuration
 const OPERATOR_CONFIG = "default"
 
+const SHADOW_CONFIG = "shadow"
 // CLUSTER_CONFIG is the name of the higher-level cluster configuration
 // and status object.
 const CLUSTER_CONFIG = "cluster"
