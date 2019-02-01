@@ -37,42 +37,42 @@ spec:
       containers:
 
       # ovsdb-server and ovs-switchd daemons
-      - name: ovs-daemons
-        image: {{.OvnImage}}
-        imagePullPolicy: {{.OvnImagePolicy}} # IfNotPresent
+      # - name: ovs-daemons
+      #   image: {{.OvnImage}}
+      #   imagePullPolicy: {{.OvnImagePolicy}} # IfNotPresent
 
-        command: ["/root/ovnkube.sh", "ovs-server"]
+      #   command: ["/root/ovnkube.sh", "ovs-server"]
 
-        securityContext:
-          runAsUser: 0
-          # Permission could be reduced by selecting an appropriate SELinux policy
-          privileged: true
+      #   securityContext:
+      #     runAsUser: 0
+      #     # Permission could be reduced by selecting an appropriate SELinux policy
+      #     privileged: true
 
-        volumeMounts:
-        - mountPath: /lib/modules
-          name: host-modules
-          readOnly: true
-        - mountPath: /run/openvswitch
-          name: host-run-ovs
-        - mountPath: /var/run/openvswitch
-          name: host-var-run-ovs
-        - mountPath: /sys
-          name: host-sys
-          readOnly: true
-        - mountPath: /etc/origin/node
-          name: host-origin-node
-        - mountPath: /etc/openvswitch
-          name: host-config-openvswitch
-        resources:
-          requests:
-            cpu: 100m
-            memory: 300Mi
-          limits:
-            cpu: 200m
-            memory: 400Mi
-        env:
-        - name: OVN_DAEMONSET_VERSION
-          value: "3"
+      #   volumeMounts:
+      #   - mountPath: /lib/modules
+      #     name: host-modules
+      #     readOnly: true
+      #   - mountPath: /run/openvswitch
+      #     name: host-run-ovs
+      #   - mountPath: /var/run/openvswitch
+      #     name: host-var-run-ovs
+      #   - mountPath: /sys
+      #     name: host-sys
+      #     readOnly: true
+      #   - mountPath: /etc/origin/node
+      #     name: host-origin-node
+      #   - mountPath: /etc/openvswitch
+      #     name: host-config-openvswitch
+      #   resources:
+      #     requests:
+      #       cpu: 100m
+      #       memory: 300Mi
+      #     limits:
+      #       cpu: 200m
+      #       memory: 400Mi
+      #   env:
+      #   - name: OVN_DAEMONSET_VERSION
+      #     value: "3"
 
 
       # firewall rules for ovn - assumed to be setup
@@ -155,7 +155,7 @@ spec:
 
         ports:
         - name: healthz
-          containerPort: 10258
+          containerPort: 20258
         # TODO: Temporarily disabled until we determine how to wait for clean default
         # config
         # livenessProbe:
@@ -239,7 +239,7 @@ spec:
 
         ports:
         - name: healthz
-          containerPort: 10259
+          containerPort: 20259
         # TODO: Temporarily disabled until we determine how to wait for clean default
         # config
         # livenessProbe:

@@ -122,7 +122,7 @@ spec:
               fieldPath: spec.nodeName
         ports:
         - name: healthz
-          containerPort: 10257
+          containerPort: 20257
         # TODO: Temporarily disabled until we determine how to wait for clean default
         # config
         # livenessProbe:
@@ -210,7 +210,7 @@ spec:
               fieldPath: spec.nodeName
         ports:
         - name: healthz
-          containerPort: 10256
+          containerPort: 20256
         # TODO: Temporarily disabled until we determine how to wait for clean default
         # config
         # livenessProbe:
@@ -298,7 +298,7 @@ spec:
               fieldPath: spec.nodeName
         ports:
         - name: healthz
-          containerPort: 10255
+          containerPort: 20255
         # TODO: Temporarily disabled until we determine how to wait for clean default
         # config
         # livenessProbe:
@@ -387,7 +387,7 @@ spec:
               fieldPath: spec.nodeName
         ports:
         - name: healthz
-          containerPort: 10254
+          containerPort: 20254
         # TODO: Temporarily disabled until we determine how to wait for clean default
         # config
         # livenessProbe:
@@ -400,7 +400,7 @@ spec:
       # end of container
 
       nodeSelector:
-        node-role.kubernetes.io/master: "true"
+        node-role.kubernetes.io/master: ""
         beta.kubernetes.io/os: "linux"
       volumes:
       # In bootstrap mode, the host config contains information not easily available
