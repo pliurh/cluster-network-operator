@@ -121,3 +121,29 @@ subjects:
 - kind: ServiceAccount
   name: ovn
   namespace: ovn-kubernetes
+
+---
+# service to expose the ovn-master pod
+# at present ovn-master is limited to a single instance so
+# when the cluster has multiple masters we can get to the
+# ovn-master via this service.
+apiVersion: v1
+kind: Service
+metadata:
+  name: ovnkube-master
+  namespace: ovn-kubernetes
+spec:
+  ports:
+  - name: north
+    port: 6641
+    protocol: TCP
+    targetPort: 6641
+  - name: south
+    port: 6642
+    protocol: TCP
+    targetPort: 6642
+  sessionAffinity: None
+  clusterIP: None
+  type: ClusterIP
+  selector:
+    name: ovnkube-master
