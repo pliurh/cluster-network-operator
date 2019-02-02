@@ -299,12 +299,12 @@ spec:
           path: /opt/cni/bin
       - name: host-etc-cni-netd
         hostPath:
-          path: /etc/cni/net.d
+          path: /etc/kubernetes/cni/net.d/
       - name: host-config-openvswitch
         hostPath:
           path: /etc/origin/openvswitch
       - name: host-var-lib-cni-networks-ovn-kubernetes
         hostPath:
-          path: /var/lib/cni/networks/ovn-k8s-cni-overlay
+          path: /var/lib/cni/bin/ovn-k8s-cni-overlay
       tolerations:
       - operator: "Exists"
