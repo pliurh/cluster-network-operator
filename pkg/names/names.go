@@ -6,6 +6,10 @@ package names
 // operator configuration
 const OPERATOR_CONFIG = "cluster"
 
+// SHADOW_CONFIG is the name of the CRD that defines the shadow
+// operator configuration
+const SHADOW_CONFIG = "shadow"
+
 // CLUSTER_CONFIG is the name of the higher-level cluster configuration
 // and status object.
 const CLUSTER_CONFIG = "cluster"

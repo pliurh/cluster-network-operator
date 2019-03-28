@@ -108,7 +108,7 @@ func (r *ReconcileOperConfig) Reconcile(request reconcile.Request) (reconcile.Re
 	log.Printf("Reconciling Network.operator.openshift.io %s\n", request.Name)
 
 	// We won't create more than one network
-	if request.Name != names.OPERATOR_CONFIG {
+	if request.Name != names.OPERATOR_CONFIG && request.Name != names.SHADOW_CONFIG{
 		log.Printf("Ignoring Network.operator.openshift.io without default name")
 		return reconcile.Result{}, nil
 	}
@@ -132,13 +132,15 @@ func (r *ReconcileOperConfig) Reconcile(request reconcile.Request) (reconcile.Re
 		return reconcile.Result{}, err
 	}
 
-	// Merge in the cluster configuration, in case the administrator has updated some "downstream" fields
-	// This will also commit the change back to the apiserver.
-	if err := r.MergeClusterConfig(context.TODO(), operConfig); err != nil {
-		log.Printf("Failed to merge the cluster configuration: %v", err)
-		r.status.SetFailing(statusmanager.OperatorConfig, "MergeClusterConfig",
-			fmt.Sprintf("Internal error while merging cluster configuration and operator configuration: %v", err))
-		return reconcile.Result{}, err
+	if request.Name == names.OPERATOR_CONFIG {
+		// Merge in the cluster configuration, in case the administrator has updated some "downstream" fields
+		// This will also commit the change back to the apiserver.
+		if err := r.MergeClusterConfig(context.TODO(), operConfig); err != nil {
+			log.Printf("Failed to merge the cluster configuration: %v", err)
+			r.status.SetFailing(statusmanager.OperatorConfig, "MergeClusterConfig",
+				fmt.Sprintf("Internal error while merging cluster configuration and operator configuration: %v", err))
+			return reconcile.Result{}, err
+		}
 	}
 
 	// Convert to a canonicalized form
