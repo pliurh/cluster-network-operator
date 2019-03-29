@@ -1,0 +1,12 @@
+apiVersion: operator.openshift.io/v1
+kind: Network
+metadata:
+  name: shadow
+spec:
+  clusterNetwork:
+  - cidr: 10.0.0.0/14
+    hostPrefix: 23
+  defaultNetwork:
+    type: OVNKubernetes
+  serviceNetwork:
+  - 172.30.0.0/16

@@ -37,35 +37,35 @@ spec:
       containers:
 
       # ovsdb-server and ovs-switchd daemons
-      - name: ovs-daemons
-        image: {{.OvnImage}}
+      # - name: ovs-daemons
+      #   image: {{.OvnImage}}
 
-        command: ["/root/ovnkube.sh", "ovs-server"]
+      #   command: ["/root/ovnkube.sh", "ovs-server"]
 
-        securityContext:
-          # Permission could be reduced by selecting an appropriate SELinux policy
-          privileged: true
+      #   securityContext:
+      #     # Permission could be reduced by selecting an appropriate SELinux policy
+      #     privileged: true
 
-        volumeMounts:
-        - mountPath: /lib/modules
-          name: host-modules
-          readOnly: true
-        - mountPath: /run/openvswitch
-          name: host-run-ovs
-        - mountPath: /var/run/openvswitch
-          name: host-var-run-ovs
-        - mountPath: /sys
-          name: host-sys
-          readOnly: true
-        - mountPath: /etc/openvswitch
-          name: host-config-openvswitch
-        resources:
-          requests:
-            cpu: 100m
-            memory: 300Mi
-        env:
-        - name: OVN_DAEMONSET_VERSION
-          value: "3"
+      #   volumeMounts:
+      #   - mountPath: /lib/modules
+      #     name: host-modules
+      #     readOnly: true
+      #   - mountPath: /run/openvswitch
+      #     name: host-run-ovs
+      #   - mountPath: /var/run/openvswitch
+      #     name: host-var-run-ovs
+      #   - mountPath: /sys
+      #     name: host-sys
+      #     readOnly: true
+      #   - mountPath: /etc/openvswitch
+      #     name: host-config-openvswitch
+      #   resources:
+      #     requests:
+      #       cpu: 100m
+      #       memory: 300Mi
+      #   env:
+      #   - name: OVN_DAEMONSET_VERSION
+      #     value: "3"
 
 
       # firewall rules for ovn - assumed to be setup
@@ -229,7 +229,7 @@ spec:
 
       - name: host-opt-cni-bin
         hostPath:
-          path: /opt/cni/bin
+          path: /var/lib/cni/bin
       - name: host-etc-cni-netd
         hostPath:
           path: /etc/kubernetes/cni/net.d

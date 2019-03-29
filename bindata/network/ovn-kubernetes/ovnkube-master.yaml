@@ -87,7 +87,7 @@ spec:
               key: k8s_apiserver
         ports:
         - name: healthz
-          containerPort: 10257
+          containerPort: 10263
         # TODO: Temporarily disabled until we determine how to wait for clean default
         # config
         # livenessProbe:
@@ -145,7 +145,7 @@ spec:
               key: k8s_apiserver
         ports:
         - name: healthz
-          containerPort: 10256
+          containerPort: 10262
         # TODO: Temporarily disabled until we determine how to wait for clean default
         # config
         # livenessProbe:
@@ -205,7 +205,7 @@ spec:
               key: k8s_apiserver
         ports:
         - name: healthz
-          containerPort: 10255
+          containerPort: 10261
         # TODO: Temporarily disabled until we determine how to wait for clean default
         # config
         # livenessProbe:
@@ -266,7 +266,7 @@ spec:
               key: k8s_apiserver
         ports:
         - name: healthz
-          containerPort: 10254
+          containerPort: 10260
         # TODO: Temporarily disabled until we determine how to wait for clean default
         # config
         # livenessProbe:
