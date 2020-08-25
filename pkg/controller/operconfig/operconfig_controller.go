@@ -172,7 +172,30 @@ func (r *ReconcileOperConfig) Reconcile(request reconcile.Request) (reconcile.Re
 	// is safe.
 	if prev != nil {
 		// Check if the operator is put in the 'Network Migration' mode.
-		if _, ok := operConfig.GetAnnotations()[names.NetworkMigrationAnnotation]; !ok {
+		if val, ok := operConfig.GetAnnotations()[names.NetworkMigrationAnnotation]; !ok || val != "start" {
+			// Prepare migration, set status but not apply objects during preparation phase.
+			if val == "prepare" {
+				// Update Network.config.openshift.io.Status
+				status, err := r.ClusterNetworkStatus(context.TODO(), operConfig)
+				if err != nil {
+					log.Printf("Could not generate network status: %v", err)
+					r.status.SetDegraded(statusmanager.OperatorConfig, "StatusError",
+						fmt.Sprintf("Could not update cluster configuration status: %v", err))
+					return reconcile.Result{}, err
+				}
+				if status != nil {
+					// Don't set the owner reference in this case -- we're updating
+					// the status of our owner.
+					if err := apply.ApplyObject(context.TODO(), r.client, status); err != nil {
+						err = errors.Wrapf(err, "could not apply (%s) %s/%s", status.GroupVersionKind(), status.GetNamespace(), status.GetName())
+						log.Println(err)
+						r.status.SetDegraded(statusmanager.OperatorConfig, "StatusError",
+							fmt.Sprintf("Could not update cluster configuration status: %v", err))
+						return reconcile.Result{}, err
+					}
+				}
+			}
+			
 			// We may need to fill defaults here -- sort of as a poor-man's
 			// upconversion scheme -- if we add additional fields to the config.
 			err = network.IsChangeSafe(prev, &operConfig.Spec)

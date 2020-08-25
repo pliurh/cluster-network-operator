@@ -91,7 +91,7 @@ func MergeClusterConfig(operConf *operv1.NetworkSpec, clusterConf configv1.Netwo
 
 // StatusFromOperatorConfig generates the cluster NetworkStatus from the
 // currently applied operator configuration.
-func StatusFromOperatorConfig(operConf *operv1.NetworkSpec, oldStatus *configv1.NetworkStatus) *configv1.NetworkStatus {
+func StatusFromOperatorConfig(operConf *operv1.NetworkSpec, oldStatus *configv1.NetworkStatus, migrationPrepare bool) *configv1.NetworkStatus {
 	knownNetworkType := true
 	status := configv1.NetworkStatus{}
 
@@ -110,6 +110,11 @@ func StatusFromOperatorConfig(operConf *operv1.NetworkSpec, oldStatus *configv1.
 
 	if oldStatus.NetworkType == "" || knownNetworkType {
 		status.NetworkType = string(operConf.DefaultNetwork.Type)
+	}
+
+	// Set networkType to empty string when preparing migration. So networkType value in spec can be consumed by MCO. 
+	if migrationPrepare {
+		status.NetworkType = ""
 	}
 
 	// TODO: when we support expanding the service cidr or cluster cidr,

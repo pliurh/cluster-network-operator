@@ -80,8 +80,13 @@ func (r *ReconcileOperConfig) ClusterNetworkStatus(ctx context.Context, operConf
 		return nil, err
 	}
 
+	migrationPrepare := false
+	if val, ok := operConfig.Annotations[names.NetworkMigrationAnnotation]; ok && val == "prepare" {
+		migrationPrepare = true
+	}
+
 	// Update the cluster config status
-	status := network.StatusFromOperatorConfig(&operConfig.Spec, &clusterConfig.Status)
+	status := network.StatusFromOperatorConfig(&operConfig.Spec, &clusterConfig.Status, migrationPrepare)
 	if status == nil || reflect.DeepEqual(*status, clusterConfig.Status) {
 		return nil, nil
 	}
