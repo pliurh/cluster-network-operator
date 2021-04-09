@@ -33,10 +33,6 @@ const IgnoreObjectErrorAnnotation = "networkoperator.openshift.io/ignore-errors"
 // that they are not critical to the functioning of the pod network
 const NonCriticalAnnotation = "networkoperator.openshift.io/non-critical"
 
-// NetworkMigrationAnnotation is an annotation on the networks.operator.openshift.io CR to indicate
-// that executing network migration (switching the default network type of the cluster) is allowed.
-const NetworkMigrationAnnotation = "networkoperator.openshift.io/network-migration"
-
 // OVNRaftClusterInitiator is an annotation on the networks.operator.openshift.io CR to indicate
 // which node IP was the raft cluster initiator. The NB and SB DB will be initialized by the same member.
 const OVNRaftClusterInitiator = "networkoperator.openshift.io/ovn-cluster-initiator"

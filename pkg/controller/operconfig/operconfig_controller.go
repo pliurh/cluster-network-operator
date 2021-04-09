@@ -175,8 +175,8 @@ func (r *ReconcileOperConfig) Reconcile(request reconcile.Request) (reconcile.Re
 	// Compare against previous applied configuration to see if this change
 	// is safe.
 	if prev != nil {
-		// Check if the operator is put in the 'Network Migration' mode.
-		if _, ok := operConfig.GetAnnotations()[names.NetworkMigrationAnnotation]; !ok {
+		// Check if the operator is put in the 'Network Migration' mode, skip IsChangeSafe if yes.
+		if operConfig.Spec.Migration == nil || operConfig.Spec.Migration.NetworkType != operConfig.Spec.DefaultNetwork.Type {
 			// We may need to fill defaults here -- sort of as a poor-man's
 			// upconversion scheme -- if we add additional fields to the config.
 			err = network.IsChangeSafe(prev, &operConfig.Spec)
