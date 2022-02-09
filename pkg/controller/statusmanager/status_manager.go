@@ -405,7 +405,7 @@ func (status *StatusManager) set(reachedAvailableLevel bool, conditions ...operv
 		}
 
 		oldStatus := co.Status.DeepCopy()
-		status.deleteRelatedObjectsNotRendered(co)
+		// status.deleteRelatedObjectsNotRendered(co)
 		if status.relatedObjects != nil {
 			co.Status.RelatedObjects = status.relatedObjects
 		}

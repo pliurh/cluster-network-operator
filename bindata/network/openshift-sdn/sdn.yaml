@@ -320,6 +320,7 @@ spec:
       {{- end}}
       nodeSelector:
         kubernetes.io/os: linux
+        migration.network.openshift.io/plugin: osdn
       volumes:
       - name: config
         configMap:

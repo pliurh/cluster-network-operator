@@ -533,6 +533,7 @@ spec:
               fieldPath: spec.nodeName
       {{- end}}
       nodeSelector:
+        migration.network.openshift.io/plugin: ovnkube
         beta.kubernetes.io/os: "linux"
       volumes:
       # for checking ovs-configuration service
