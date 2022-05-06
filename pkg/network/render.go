@@ -483,6 +483,18 @@ func renderDefaultNetwork(conf *operv1.NetworkSpec, bootstrapResult *bootstrap.B
 		return nil, false, errors.Errorf("invalid Default Network configuration: %v", errs)
 	}
 
+	if conf.Migration != nil && conf.Migration.Type == "live" {
+		objs, sdnProgressing, err := renderOpenShiftSDN(conf, bootstrapResult, manifestDir)
+		if err != nil {
+			return nil, false, err
+		}
+		ovnObjs, ovnProgressing, err := renderOVNKubernetes(conf, bootstrapResult, manifestDir)
+		if err != nil {
+			return nil, false, err
+		}
+		return  append(objs, ovnObjs...), sdnProgressing||ovnProgressing, nil
+	}
+
 	switch dn.Type {
 	case operv1.NetworkTypeOpenShiftSDN:
 		return renderOpenShiftSDN(conf, bootstrapResult, manifestDir)

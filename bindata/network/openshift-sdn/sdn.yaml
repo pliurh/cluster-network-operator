@@ -66,6 +66,12 @@ spec:
         - |
           #!/bin/bash
           set -euo pipefail
+          if ovs-vsctl br-exists br-ex; then
+            echo "br-ex exists, sleep..."
+            sleep infinity
+          else
+            echo "br-ex doesn't exist"
+          fi
 
           # if another process is listening on the cni-server socket, wait until it exits
           trap 'kill $(jobs -p); rm -f /etc/cni/net.d/80-openshift-network.conf ; exit 0' TERM

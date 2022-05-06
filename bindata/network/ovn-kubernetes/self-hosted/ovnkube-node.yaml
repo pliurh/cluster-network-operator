@@ -285,6 +285,12 @@ spec:
         - -c
         - |
           set -xe
+          if ovs-vsctl br-exists br-ex; then
+            echo "br-ex exists"
+          else
+            echo "br-ex doesn't exist, sleep..."
+            sleep infinity
+          fi
           if [[ -f "/env/${K8S_NODE}" ]]; then
             set -o allexport
             source "/env/${K8S_NODE}"

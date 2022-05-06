@@ -305,4 +305,5 @@ fi
 
 setup_operator_env "${IMAGE_ENV_KEY}" "${PLUGIN_IMAGE}"
 
-env $(cat "${CLUSTER_DIR}/env.sh") OSDK_FORCE_RUN_MODE=local ./cluster-network-operator start --kubeconfig "${KUBECONFIG}"
+# env $(cat "${CLUSTER_DIR}/env.sh") OSDK_FORCE_RUN_MODE=local OVN_IMAGE=quay.io/pliurh/ovn-kubernetes:lm11 ./cluster-network-operator start --kubeconfig "${KUBECONFIG}"
+env $(cat "${CLUSTER_DIR}/env.sh") OSDK_FORCE_RUN_MODE=local SDN_IMAGE=quay.io/pliurh/openshift-sdn:lm4 OVN_IMAGE=quay.io/pliurh/ovn-kubernetes:lm63 ./cluster-network-operator start --kubeconfig "${KUBECONFIG}"
