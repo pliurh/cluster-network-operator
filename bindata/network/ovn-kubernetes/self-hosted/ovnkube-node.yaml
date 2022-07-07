@@ -73,6 +73,14 @@ spec:
         - -c
         - |
           set -e
+{{- if .IsLiveMigration }}
+          if ovs-vsctl br-exists br-ex; then
+            echo "br-ex exists, run"
+          else
+            echo "br-ex doesn't exist, sleep..."
+            sleep infinity
+          fi
+{{- end }}
           if [[ -f "/env/${K8S_NODE}" ]]; then
             set -o allexport
             source "/env/${K8S_NODE}"
@@ -132,7 +140,14 @@ spec:
         - -c
         - |
           set -euo pipefail
-
+{{- if .IsLiveMigration }}
+          if ovs-vsctl br-exists br-ex; then
+            echo "br-ex exists, run"
+          else
+            echo "br-ex doesn't exist, sleep..."
+            sleep infinity
+          fi
+{{- end }}
           # Rotate audit log files when then get to max size (in bytes)
           MAXFILESIZE=$(( "{{.OVNPolicyAuditMaxFileSize}}"*1000000 )) 
           LOGFILE=/var/log/ovn/acl-audit-log.log
@@ -285,6 +300,52 @@ spec:
         - -c
         - |
           set -xe
+{{- if .IsLiveMigration }}
+          kubectl get crd hostsubnets.network.openshift.io
+          HOST_SUBNET=$(kubectl get hostsubnet ${K8S_NODE} -o jsonpath="{.subnet}")
+          if SUBNET=$(kubectl get node ${K8S_NODE} -o jsonpath='{.metadata.annotations.k8s\.ovn\.org/node-subnets}'| grep -o  -E '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\/[0-9]{1,3}'); then
+            echo "ovnkube node-subnets annotation exists"
+          fi
+          if [ "$SUBNET" == "$HOST_SUBNET" ]; then
+            echo "subnet is aligned: " $SUBNET
+          else
+            if [[ -z $SUBNET ]]; then
+              echo "ovnkube node-subnets annotation is unset"
+              SUBNET="$HOST_SUBNET"
+            fi
+            echo "subnet is not aligned, use the value from ovnkube"
+            NODE_UID=$(kubectl get node ${K8S_NODE} -o jsonpath='{.metadata.uid}')
+            NODE_IP=$(kubectl get nodes ${K8S_NODE} -o jsonpath='{.status.addresses[?(@.type=="InternalIP")].address}')
+            echo "create hostsubnet CR for this node"
+          cat <<EOF | kubectl apply -f -
+          apiVersion: network.openshift.io/v1
+          kind: HostSubnet
+          metadata:
+            name: ${K8S_NODE}
+            annotations:
+              pod.network.openshift.io/node-uid: ${NODE_UID}
+          host: ${K8S_NODE}
+          hostIP: ${NODE_IP}
+          subnet: ${SUBNET}
+          EOF
+          fi
+          if ovs-vsctl br-exists br-ex; then
+            echo "br-ex exists, run ovnkube-node"
+            #kubectl annotate node ${K8S_NODE} k8s.ovn.org/hybrid-overlay-node-subnet-
+            # kubectl annotate node ${K8S_NODE} --overwrite k8s.ovn.org/node-subnets={\"default\":\"${SUBNET}\"}
+            # kubectl label node --overwrite ${K8S_NODE} migration.network.openshift.io/plugin-
+            kubectl patch node ${K8S_NODE} --type=json -p='[{"op": "remove", "path": "/metadata/labels/migration.network.openshift.io~1plugin"}, {"op": "add", "path": "/metadata/annotations/k8s.ovn.org~1node-subnets", "value": "{\"default\":\"'${SUBNET}'\"}"}]'||/bin/true
+          else
+            echo "br-ex doesn't exist"
+            #kubectl annotate node ${K8S_NODE} k8s.ovn.org/node-subnets-
+            # kubectl label node --overwrite ${K8S_NODE} migration.network.openshift.io/plugin=
+            # kubectl annotate node ${K8S_NODE} --overwrite k8s.ovn.org/hybrid-overlay-node-subnet=${SUBNET}
+            kubectl patch node ${K8S_NODE} --type=json -p='[{"op": "add", "path": "/metadata/labels/migration.network.openshift.io~1plugin", "value": ""}, {"op": "add", "path": "/metadata/annotations/k8s.ovn.org~1hybrid-overlay-node-subnet", "value": "'${SUBNET}'"}]'||/bin/true
+            echo "run hybrid-overlay-node"
+            hybrid-overlay-node --node "${K8S_NODE}" \
+              --config-file=/run/ovnkube-config/ovnkube.conf
+          fi
+{{- end }}
           if [[ -f "/env/${K8S_NODE}" ]]; then
             set -o allexport
             source "/env/${K8S_NODE}"
@@ -463,7 +524,17 @@ spec:
               command: ["rm","-f","/etc/cni/net.d/10-ovn-kubernetes.conf"]
         readinessProbe:
           exec:
-            command: ["test", "-f", "/etc/cni/net.d/10-ovn-kubernetes.conf"]
+            command:
+            - /bin/bash
+            - -c
+            - |
+              #!/bin/bash
+{{- if .IsLiveMigration }}
+              if ! ovs-vsctl br-exists br-ex; then
+                exit 0
+              fi
+{{- end }}
+              test -f /etc/cni/net.d/10-ovn-kubernetes.conf
           initialDelaySeconds: 5
           periodSeconds: 5
       {{- if .OVNPlatformAzure}}

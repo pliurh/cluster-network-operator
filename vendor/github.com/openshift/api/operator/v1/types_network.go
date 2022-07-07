@@ -123,6 +123,10 @@ type NetworkMigration struct {
 	// changing the MTU for the default network will be rejected.
 	// +optional
 	MTU *MTUMigration `json:"mtu,omitempty"`
+
+	// Type indicates if it's a live migration.
+	// +optional
+	IsLive bool `json:"isLive,omitempty"`
 }
 
 // MTUMigration MTU contains infomation about MTU migration.

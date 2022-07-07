@@ -520,6 +520,9 @@ spec:
                   migration. The migration procedure allows to change the network
                   type and the MTU.
                 properties:
+                  isLive:
+                    description: Type indicates if it's a live migration.
+                    type: boolean
                   mtu:
                     description: mtu contains the MTU migration configuration. Set
                       this to allow changing the MTU values for the default network.

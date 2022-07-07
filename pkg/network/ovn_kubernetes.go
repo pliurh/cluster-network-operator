@@ -108,22 +108,28 @@ func renderOVNKubernetes(conf *operv1.NetworkSpec, bootstrapResult *bootstrap.Bo
 	data.Data["TokenAudience"] = os.Getenv("TOKEN_AUDIENCE")
 	data.Data["MTU"] = c.MTU
 	data.Data["RoutableMTU"] = nil
+	data.Data["IsLiveMigration"] = nil
 
-	if conf.Migration != nil && conf.Migration.MTU != nil {
-		if *conf.Migration.MTU.Network.From > *conf.Migration.MTU.Network.To {
-			data.Data["MTU"] = conf.Migration.MTU.Network.From
-			data.Data["RoutableMTU"] = conf.Migration.MTU.Network.To
-		} else {
-			data.Data["MTU"] = conf.Migration.MTU.Network.To
-			data.Data["RoutableMTU"] = conf.Migration.MTU.Network.From
+	if conf.Migration != nil {
+		if conf.Migration.MTU != nil {
+			if *conf.Migration.MTU.Network.From > *conf.Migration.MTU.Network.To {
+				data.Data["MTU"] = conf.Migration.MTU.Network.From
+				data.Data["RoutableMTU"] = conf.Migration.MTU.Network.To
+			} else {
+				data.Data["MTU"] = conf.Migration.MTU.Network.To
+				data.Data["RoutableMTU"] = conf.Migration.MTU.Network.From
+			}
+
+			// c.MTU is used to set the applied network configuration MTU
+			// MTU migration procedure:
+			//  1. User sets the MTU they want to migrate to
+			//  2. CNO sets the MTU as applied
+			//  3. User can then set the MTU as configured
+			c.MTU = conf.Migration.MTU.Network.To
 		}
-
-		// c.MTU is used to set the applied network configuration MTU
-		// MTU migration procedure:
-		//  1. User sets the MTU they want to migrate to
-		//  2. CNO sets the MTU as applied
-		//  3. User can then set the MTU as configured
-		c.MTU = conf.Migration.MTU.Network.To
+		if conf.Migration.IsLive {
+			data.Data["IsLiveMigration"] = "true"
+		}
 	}
 	data.Data["GenevePort"] = c.GenevePort
 	data.Data["CNIConfDir"] = pluginCNIConfDir(conf)
@@ -149,11 +155,13 @@ func renderOVNKubernetes(conf *operv1.NetworkSpec, bootstrapResult *bootstrap.Bo
 	}
 
 	// Hypershift
-	data.Data["ManagementClusterName"] = client.ManagementClusterName
-	data.Data["HostedClusterNamespace"] = bootstrapResult.OVN.OVNKubernetesConfig.HyperShiftConfig.Namespace
-	data.Data["OvnkubeMasterReplicas"] = len(bootstrapResult.OVN.MasterAddresses)
-	data.Data["ClusterID"] = bootstrapResult.OVN.OVNKubernetesConfig.HyperShiftConfig.ClusterID
-	data.Data["ClusterIDLabel"] = ClusterIDLabel
+	if bootstrapResult.OVN.OVNKubernetesConfig.HyperShiftConfig != nil {
+		data.Data["ManagementClusterName"] = client.ManagementClusterName
+		data.Data["HostedClusterNamespace"] = bootstrapResult.OVN.OVNKubernetesConfig.HyperShiftConfig.Namespace
+		data.Data["OvnkubeMasterReplicas"] = len(bootstrapResult.OVN.MasterAddresses)
+		data.Data["ClusterID"] = bootstrapResult.OVN.OVNKubernetesConfig.HyperShiftConfig.ClusterID
+		data.Data["ClusterIDLabel"] = ClusterIDLabel
+	}
 	data.Data["OVNDbServiceType"] = corev1.ServiceTypeClusterIP
 	data.Data["OVNSbDbRouteHost"] = nil
 	data.Data["OVN_SB_NODE_PORT"] = nil

@@ -36,7 +36,11 @@ func renderMultus(conf *operv1.NetworkSpec, bootstrapResult *bootstrap.Bootstrap
 	usedhcp, usewhereabouts := detectAuxiliaryIPAM(conf)
 	h := bootstrapResult.Infra.APIServers[bootstrap.APIServerDefault].Host
 	p := bootstrapResult.Infra.APIServers[bootstrap.APIServerDefault].Port
-	objs, err = renderMultusConfig(manifestDir, string(conf.DefaultNetwork.Type), usedhcp, usewhereabouts, h, p, bootstrapResult.Infra.Proxy)
+	isLiveMigration := false
+	if conf.Migration != nil && conf.Migration.IsLive {
+		isLiveMigration = true
+	}
+	objs, err = renderMultusConfig(manifestDir, string(conf.DefaultNetwork.Type), usedhcp, usewhereabouts, h, p, bootstrapResult.Infra.Proxy, isLiveMigration)
 	if err != nil {
 		return nil, err
 	}
@@ -52,7 +56,7 @@ func renderMultus(conf *operv1.NetworkSpec, bootstrapResult *bootstrap.Bootstrap
 }
 
 // renderMultusConfig returns the manifests of Multus
-func renderMultusConfig(manifestDir, defaultNetworkType string, useDHCP bool, useWhereabouts bool, apihost, apiport string, proxy configv1.ProxyStatus) ([]*uns.Unstructured, error) {
+func renderMultusConfig(manifestDir, defaultNetworkType string, useDHCP bool, useWhereabouts bool, apihost, apiport string, proxy configv1.ProxyStatus, isLiveMigration bool) ([]*uns.Unstructured, error) {
 	objs := []*uns.Unstructured{}
 
 	// render the manifests on disk
@@ -75,7 +79,10 @@ func renderMultusConfig(manifestDir, defaultNetworkType string, useDHCP bool, us
 	data.Data["HTTP_PROXY"] = proxy.HTTPProxy
 	data.Data["HTTPS_PROXY"] = proxy.HTTPSProxy
 	data.Data["NO_PROXY"] = proxy.NoProxy
-
+	data.Data["IsLiveMigration"] = nil
+	if isLiveMigration {
+		data.Data["IsLiveMigration"] = "true"
+	}
 	manifests, err := render.RenderDir(filepath.Join(manifestDir, "network/multus"), &data)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to render multus manifests")
