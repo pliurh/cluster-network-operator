@@ -62,6 +62,13 @@ func Render(conf *operv1.NetworkSpec, bootstrapResult *bootstrap.BootstrapResult
 	}
 	objs = append(objs, o...)
 
+	if conf.Migration != nil {
+		o, progressing, err = renderCRDForMigration(conf, manifestDir)
+		if err != nil {
+			return nil, progressing, err
+		}
+		objs = append(objs, o...)
+	}
 	// render kube-proxy
 	// DPU_DEV_PREVIEW
 	// There is currently a restriction that renderStandaloneKubeProxy() is
@@ -492,6 +499,29 @@ func renderDefaultNetwork(conf *operv1.NetworkSpec, bootstrapResult *bootstrap.B
 		return renderKuryr(conf, bootstrapResult, manifestDir)
 	default:
 		log.Printf("NOTICE: Unknown network type %s, ignoring", dn.Type)
+		return nil, false, nil
+	}
+}
+
+func renderCRDForMigration(conf *operv1.NetworkSpec, manifestDir string) ([]*uns.Unstructured, bool, error) {
+	migration := conf.Migration
+	progressing := false
+
+	switch migration.NetworkType {
+	case string(operv1.NetworkTypeOVNKubernetes):
+		manifests, err := render.RenderTemplate(filepath.Join(manifestDir, "network/ovn-kubernetes/common/001-crd.yaml"), &render.RenderData{})
+		if err != nil {
+			return nil, progressing, errors.Wrap(err, "failed to render OVNKubernetes CRDs")
+		}
+		return manifests, progressing, err
+	case string(operv1.NetworkTypeOpenShiftSDN):
+		manifests, err := render.RenderTemplate(filepath.Join(manifestDir, "network/openshift-sdn/001-crd.yaml"), &render.RenderData{})
+		if err != nil {
+			return nil, progressing, errors.Wrap(err, "failed to render OpenShiftSDN CRDs")
+		}
+		return manifests, progressing, err
+	default:
+		log.Printf("NOTICE: Unknown network type %s, ignoring", migration.NetworkType)
 		return nil, false, nil
 	}
 }
