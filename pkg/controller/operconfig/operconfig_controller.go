@@ -400,6 +400,13 @@ func (r *ReconcileOperConfig) Reconcile(ctx context.Context, request reconcile.R
 		}
 	}
 
+	if operConfig.Spec.Migration != nil {
+		err = migrateEgressFirewallCRs(ctx, operConfig, r.client)
+		if err != nil {
+			return reconcile.Result{}, err
+		}
+	}
+
 	// Update Network.config.openshift.io.Status
 	status, err := r.ClusterNetworkStatus(ctx, operConfig)
 	if err != nil {
