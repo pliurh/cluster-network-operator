@@ -22,17 +22,28 @@ var gvrEgressFirewall = schema.GroupVersionResource{Group: "k8s.ovn.org", Versio
 var gvrEgressNetworkPolicy = schema.GroupVersionResource{Group: "network.openshift.io", Version: "v1", Resource: "egressnetworkpolicies"}
 
 func migrateEgressFirewallCRs(ctx context.Context, operConfig *operv1.Network, client cnoclient.Client) error {
+	objs := []*uns.Unstructured{}
 	switch operConfig.Spec.Migration.NetworkType {
 	case string(operv1.NetworkTypeOVNKubernetes):
-		return convertEgressNetworkPolicyToEgressFirewall(ctx, client)
+		if err := convertEgressNetworkPolicyToEgressFirewall(ctx, client, objs); err != nil {
+			return err
+		}
 	case string(operv1.NetworkTypeOpenShiftSDN):
-		return convertEgressFirewallToEgressNetworkPolicy(ctx, client)
+		if err := convertEgressFirewallToEgressNetworkPolicy(ctx, client, objs); err != nil {
+			return err
+		}
+	}
+
+	for _, obj := range objs {
+		if err := apply.ApplyObject(ctx, client, obj, ""); err != nil {
+			return err
+		}
 	}
 
 	return nil
 }
 
-func convertEgressNetworkPolicyToEgressFirewall(ctx context.Context, client cnoclient.Client) error {
+func convertEgressNetworkPolicyToEgressFirewall(ctx context.Context, client cnoclient.Client, objs []*uns.Unstructured) error {
 	enpList, err := client.Default().Dynamic().Resource(gvrEgressNetworkPolicy).List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return err
@@ -56,14 +67,12 @@ func convertEgressNetworkPolicyToEgressFirewall(ctx context.Context, client cnoc
 				"spec": spec,
 			},
 		}
-		if err := apply.ApplyObject(ctx, client, egressFirewall, ""); err != nil {
-			return err
-		}
+		objs = append(objs, egressFirewall)
 	}
 	return nil
 }
 
-func convertEgressFirewallToEgressNetworkPolicy(ctx context.Context, client cnoclient.Client) error {
+func convertEgressFirewallToEgressNetworkPolicy(ctx context.Context, client cnoclient.Client, objs []*uns.Unstructured) error {
 	efList, err := client.Default().Dynamic().Resource(gvrEgressFirewall).List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return err
@@ -91,9 +100,7 @@ func convertEgressFirewallToEgressNetworkPolicy(ctx context.Context, client cnoc
 				"spec": spec,
 			},
 		}
-		if err := apply.ApplyObject(ctx, client, egressNetworkPolicy, ""); err != nil {
-			return err
-		}
+		objs = append(objs, egressNetworkPolicy)
 	}
 	return nil
 }
