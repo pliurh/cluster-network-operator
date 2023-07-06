@@ -26,6 +26,9 @@ data:
 {{- if .OVNHybridOverlayEnable }}
     no-hostsubnet-nodes="kubernetes.io/os=windows"
 {{- end  }}
+{{- if .IsLiveMigration }}
+    no-hostsubnet-nodes="migration.network.openshift.io/plugin="
+{{- end }}
     platform-type="{{.PlatformType}}"
     healthz-bind-address="0.0.0.0:10256"
  
@@ -65,6 +68,11 @@ data:
     {{- if .OVNHybridOverlayVXLANPort}}
     hybrid-overlay-vxlan-port="{{.OVNHybridOverlayVXLANPort}}"
     {{- end }}
+{{- end  }}
+{{- if .IsLiveMigration }}
+
+    [hybridoverlay]
+    enabled=true
 {{- end  }}
 {{- if .IsSNO }}
 

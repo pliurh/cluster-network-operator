@@ -60,12 +60,20 @@ spec:
         - -c
         - |
           set -e
+{{- if .IsLiveMigration }}
+          if ovs-vsctl br-exists br-ex; then
+            echo "br-ex exists, run"
+          else
+            echo "br-ex doesn't exist, sleep..."
+            sleep infinity
+          fi
+{{- end }}
           if [[ -f "/env/${K8S_NODE}" ]]; then
             set -o allexport
             source "/env/${K8S_NODE}"
             set +o allexport
-          fi  
-          
+          fi
+
           echo "$(date -Iseconds) - starting ovn-controller"
           exec ovn-controller unix:/var/run/openvswitch/db.sock -vfile:off \
             --no-chdir --pidfile=/var/run/ovn/ovn-controller.pid \
@@ -119,9 +127,16 @@ spec:
         - -c
         - |
           set -euo pipefail
-
+{{- if .IsLiveMigration }}
+          if ovs-vsctl br-exists br-ex; then
+            echo "br-ex exists, run"
+          else
+            echo "br-ex doesn't exist, sleep..."
+            sleep infinity
+          fi
+{{- end }}
           # Rotate audit log files when then get to max size (in bytes)
-          MAXFILESIZE=$(( "{{.OVNPolicyAuditMaxFileSize}}"*1000000 )) 
+          MAXFILESIZE=$(( "{{.OVNPolicyAuditMaxFileSize}}"*1000000 ))
           LOGFILE=/var/log/ovn/acl-audit-log.log
           CONTROLLERPID=$(cat /run/ovn/ovn-controller.pid)
 
@@ -130,14 +145,14 @@ spec:
 
           while true
           do
-            # Make sure ovn-controller's logfile exists, and get current size in bytes 
-            if [ -f "$LOGFILE" ]; then 
+            # Make sure ovn-controller's logfile exists, and get current size in bytes
+            if [ -f "$LOGFILE" ]; then
               file_size=`du -b ${LOGFILE} | tr -s '\t' ' ' | cut -d' ' -f1`
-            else 
+            else
               ovs-appctl -t /var/run/ovn/ovn-controller.${CONTROLLERPID}.ctl vlog/reopen
               file_size=`du -b ${LOGFILE} | tr -s '\t' ' ' | cut -d' ' -f1`
-            fi 
-            
+            fi
+
             if [ $file_size -gt $MAXFILESIZE ];then
               echo "Rotating OVN ACL Log File"
               timestamp=`date '+%Y-%m-%dT%H-%M-%S'`
@@ -146,8 +161,8 @@ spec:
               CONTROLLERPID=$(cat /run/ovn/ovn-controller.pid)
             fi
 
-            # sleep for 30 seconds to avoid wasting CPU 
-            sleep 30 
+            # sleep for 30 seconds to avoid wasting CPU
+            sleep 30
           done
         resources:
           requests:
@@ -177,7 +192,7 @@ spec:
           TS=$(date +%s)
           WARN_TS=$(( ${TS} + $(( 20 * 60)) ))
           HAS_LOGGED_INFO=0
-          
+
           log_missing_certs(){
               CUR_TS=$(date +%s)
               if [[ "${CUR_TS}" -gt "WARN_TS"  ]]; then
@@ -191,7 +206,7 @@ spec:
             log_missing_certs
             sleep 5
           done
-          
+
           echo $(date -Iseconds) INFO: ovn-node-metrics-certs mounted, starting kube-rbac-proxy
           exec /usr/bin/kube-rbac-proxy \
             --logtostderr \
@@ -272,6 +287,7 @@ spec:
         - -c
         - |
           set -xem
+          rm -f /etc/openvswitch/ovnnb_db.db /etc/openvswitch/ovnsb_db.db
           if [[ -f /env/_master ]]; then
             set -o allexport
             source /env/_master
@@ -580,7 +596,7 @@ spec:
           TS=$(date +%s)
           WARN_TS=$(( ${TS} + $(( 20 * 60)) ))
           HAS_LOGGED_INFO=0
-          
+
           log_missing_certs(){
               CUR_TS=$(date +%s)
               if [[ "${CUR_TS}" -gt "WARN_TS"  ]]; then
@@ -594,7 +610,7 @@ spec:
             log_missing_certs
             sleep 5
           done
-          
+
           echo $(date -Iseconds) INFO: ovn-master-metrics-certs mounted, starting kube-rbac-proxy
           exec /usr/bin/kube-rbac-proxy \
             --logtostderr \
@@ -644,7 +660,7 @@ spec:
             multi_network_enabled_flag="--enable-multi-network"
           fi
 
-          echo "I$(date "+%m%d %H:%M:%S.%N") - ovnkube-controller - start ovnkube --init-ovnkube-controller ${K8S_NODE}"
+          echo "I$(date "+%m%d %H:%M:%S.%N") - ovnkube-controller - start ovnkube --init-network-controller-manager ${K8S_NODE}"
           exec /usr/bin/ovnkube \
             --init-ovnkube-controller "${K8S_NODE}" \
             --config-file=/run/ovnkube-config/ovnkube.conf \
@@ -707,6 +723,67 @@ spec:
         - -c
         - |
           set -xe
+{{- if .IsLiveMigration }}
+          set +e
+
+          SDN_SUBNET=$(kubectl get hostsubnet ${K8S_NODE} -o jsonpath="{.subnet}")
+          echo "sdn hostsubnet:" ${SDN_SUBNET}
+          OVN_SUBNET=$(kubectl get node ${K8S_NODE} -o jsonpath='{.metadata.annotations.k8s\.ovn\.org/node-subnets}'| grep -o  -E '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\/[0-9]{1,3}')
+          echo "ovnkube node-subnets annotation:" ${OVN_SUBNET}
+          set -e
+
+          if [ ! -z "${SDN_SUBNET}" ] && [ ! -z "${OVN_SUBNET}" ] && [ "${SDN_SUBNET}" != "${OVN_SUBNET}" ]; then
+              echo "hostsubnet mismatch"
+              exit 1 
+          fi
+
+          if [ ! -z "${SDN_SUBNET}" ]; then
+              echo "sdn hostsubnet is set"
+              SUBNET=${SDN_SUBNET}
+          else
+              echo "sdn hostsubnet is unset"
+              if [ ! -z "${OVN_SUBNET}" ]; then
+                  echo "hostsubnet CR is not found, use the value from ovnkube annotation"
+                  SUBNET=${OVN_SUBNET}
+                  NODE_UID=$(kubectl get node ${K8S_NODE} -o jsonpath='{.metadata.uid}')
+                  NODE_IP=$(kubectl get nodes ${K8S_NODE} -o jsonpath='{.status.addresses[?(@.type=="InternalIP")].address}')
+                  echo "create hostsubnet CR for this node"
+          cat <<EOF | kubectl apply -f -
+          apiVersion: network.openshift.io/v1
+          kind: HostSubnet
+          metadata:
+          name: ${K8S_NODE}
+          annotations:
+              pod.network.openshift.io/node-uid: ${NODE_UID}
+          host: ${K8S_NODE}
+          hostIP: ${NODE_IP}
+          subnet: ${SUBNET}
+          EOF
+              else
+                  echo "cannot discover host subnet"
+              fi
+          fi
+
+          kubectl annotate node ${K8S_NODE} --overwrite k8s.ovn.org/node-subnets={\"default\":\[\"${SUBNET}\"\]}
+          kubectl annotate node ${K8S_NODE} --overwrite k8s.ovn.org/hybrid-overlay-node-subnet=${SUBNET}
+
+          if ovs-vsctl br-exists br-ex; then
+            echo "br-ex exists, run ovnkube-node"
+            # kubectl annotate node ${K8S_NODE} k8s.ovn.org/hybrid-overlay-node-subnet-
+            # kubectl annotate node ${K8S_NODE} --overwrite k8s.ovn.org/hybrid-overlay-node-subnet-
+            kubectl label node --overwrite ${K8S_NODE} migration.network.openshift.io/plugin-
+            # kubectl patch node ${K8S_NODE} --type=json -p='[{"op": "remove", "path": "/metadata/labels/migration.network.openshift.io~1plugin"}, {"op": "add", "path": "/metadata/annotations/k8s.ovn.org~1node-subnets", "value": "{\"default\":\"'${SUBNET}'\"}"}]'||/bin/true
+          else
+            echo "br-ex doesn't exist"
+            # kubectl annotate node ${K8S_NODE} k8s.ovn.org/node-subnets-
+            kubectl label node --overwrite ${K8S_NODE} migration.network.openshift.io/plugin=
+            kubectl annotate node ${K8S_NODE} --overwrite k8s.ovn.org/hybrid-overlay-distributed-router-gateway-ip-
+            # kubectl patch node ${K8S_NODE} --type=json -p='[{"op": "add", "path": "/metadata/labels/migration.network.openshift.io~1plugin", "value": ""}], {"op": "add", "path": "/metadata/annotations/k8s.ovn.org~1hybrid-overlay-node-subnet", "value": "'${SUBNET}'"}]'||/bin/true
+            echo "run hybrid-overlay-node"
+            hybrid-overlay-node --node "${K8S_NODE}" \
+              --config-file=/run/ovnkube-config/ovnkube.conf
+          fi
+{{- end }}
           if [[ -f "/env/${K8S_NODE}" ]]; then
             set -o allexport
             source "/env/${K8S_NODE}"
@@ -888,7 +965,17 @@ spec:
               command: ["rm","-f","/etc/cni/net.d/10-ovn-kubernetes.conf"]
         readinessProbe:
           exec:
-            command: ["test", "-f", "/etc/cni/net.d/10-ovn-kubernetes.conf"]
+            command:
+            - /bin/bash
+            - -c
+            - |
+              #!/bin/bash
+{{- if .IsLiveMigration }}
+              if ! ovs-vsctl br-exists br-ex; then
+                exit 0
+              fi
+{{- end }}
+              test -f /etc/cni/net.d/10-ovn-kubernetes.conf
           initialDelaySeconds: 5
           periodSeconds: 30
       {{- if .OVNPlatformAzure}}
@@ -986,12 +1073,12 @@ spec:
         hostPath:
           path: /var/run/ovn
       {{ if eq .OVN_NODE_MODE "full" }}
-      # Used for placement of ACL audit logs 
+      # Used for placement of ACL audit logs
       - name: node-log
-        hostPath: 
+        hostPath:
           path: /var/log/ovn
       - name: log-socket
-        hostPath: 
+        hostPath:
           path: /dev/log
       {{ end }}
       # For CNI server

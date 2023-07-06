@@ -567,6 +567,19 @@ func renderDefaultNetwork(conf *operv1.NetworkSpec, bootstrapResult *bootstrap.B
 		return nil, false, errors.Errorf("invalid Default Network configuration: %v", errs)
 	}
 
+	if conf.Migration != nil && conf.Migration.IsLive {
+		log.Printf("Start the live migration")
+		ovnObjs, ovnProgressing, err := renderOVNKubernetes(conf, bootstrapResult, manifestDir)
+		if err != nil {
+			return nil, false, err
+		}
+		objs, sdnProgressing, err := renderOpenShiftSDN(conf, bootstrapResult, manifestDir)
+		if err != nil {
+			return nil, false, err
+		}
+		return append(objs, ovnObjs...), sdnProgressing || ovnProgressing, nil
+	}
+
 	switch dn.Type {
 	case operv1.NetworkTypeOpenShiftSDN:
 		return renderOpenShiftSDN(conf, bootstrapResult, manifestDir)
@@ -603,6 +616,12 @@ func renderCRDForMigration(conf *operv1.NetworkSpec, manifestDir string) ([]*uns
 }
 
 func fillDefaultNetworkDefaults(conf, previous *operv1.NetworkSpec, hostMTU int) {
+	if conf.Migration != nil && conf.Migration.IsLive {
+		log.Printf("fill default for both sdn and ovnkube during live migration")
+		fillOpenShiftSDNDefaults(conf, previous, hostMTU)
+		fillOVNKubernetesDefaults(conf, previous, hostMTU)
+		return
+	}
 	switch conf.DefaultNetwork.Type {
 	case operv1.NetworkTypeOpenShiftSDN:
 		fillOpenShiftSDNDefaults(conf, previous, hostMTU)
@@ -619,10 +638,10 @@ func isDefaultNetworkChangeSafe(prev, next *operv1.NetworkSpec) []error {
 	if prev.DefaultNetwork.Type != next.DefaultNetwork.Type {
 		if prev.Migration == nil {
 			return []error{errors.Errorf("cannot change default network type when not doing migration")}
-		} else {
-			if operv1.NetworkType(prev.Migration.NetworkType) != next.DefaultNetwork.Type {
-				return []error{errors.Errorf("can only change default network type to the target migration network type")}
-			}
+		// } else {
+		// 	if operv1.NetworkType(prev.Migration.NetworkType) != next.DefaultNetwork.Type {
+		// 		return []error{errors.Errorf("can only change default network type to the target migration network type")}
+		// 	}
 		}
 	}
 
@@ -642,7 +661,7 @@ func isDefaultNetworkChangeSafe(prev, next *operv1.NetworkSpec) []error {
 }
 
 func isMigrationChangeSafe(prev, next *operv1.NetworkSpec) []error {
-	if prev.Migration != nil && next.Migration != nil && prev.Migration.NetworkType != next.Migration.NetworkType {
+	if prev.Migration != nil && next.Migration != nil && next.Migration.IsLive && next.Migration.NetworkType != next.Migration.NetworkType {
 		return []error{errors.Errorf("cannot change migration network type after migration has started")}
 	}
 	return nil

@@ -155,6 +155,7 @@ require (
 )
 
 replace (
+	github.com/openshift/api => /root/projects/api
 	github.com/openshift/hypershift/api => github.com/openshift/hypershift v0.0.0-20220323152148-c356b8b72d66
 	k8s.io/client-go => k8s.io/client-go v0.27.2
 	k8s.io/kube-openapi => k8s.io/kube-openapi v0.0.0-20230515203736-54b630e78af5

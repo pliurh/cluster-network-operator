@@ -588,6 +588,9 @@ spec:
                           defaults to 'true' and multicast configure is migrated.
                         type: boolean
                     type: object
+                  isLive:
+                    description: Type indicates if it's a live migration.
+                    type: boolean
                   mtu:
                     description: mtu contains the MTU migration configuration. Set
                       this to allow changing the MTU values for the default network.

@@ -94,6 +94,20 @@ rules:
   - watch
   - update
   - patch
+- apiGroups: ["network.openshift.io"]
+  resources:
+  - clusternetworks
+  - egressnetworkpolicies
+  - hostsubnets
+  - netnamespaces
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
 - apiGroups: ["cloud.network.openshift.io"]
   resources:
   - cloudprivateipconfigs
